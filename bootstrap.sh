@@ -1,36 +1,6 @@
 #!/bin/bash
 
-LOG_FILE="/usr/games/minecraft.log"
-
-function bootstrap_log() {
-    echo "${*}" | tee -a "${LOG_FILE}" > /dev/null
-}
-
-bootstrap_log "Bootstrapping Bedrock server at $(date)"
-
-# ---------------------------------------------------------------------------------------
-
-INSTANCE_ID="$(curl "http://169.254.169.254/latest/meta-data/instance-id")"
-
-bootstrap_log "Fetching instance details"
-STACK_NAME="$(aws ec2 describe-tags --filters \
-    "Name=resource-id,Values=${INSTANCE_ID}" \
-    "Name=key,Values=aws:cloudformation:stack-name" \
-    "Name=resource-type,Values=instance" --query 'Tags[0].Value' --output text)"
-
-bootstrap_log "Reading configuration parameters"
-PARAMETERS="$(aws cloudformation describe-stacks --stack-name "${STACK_NAME}" \
-    --output text --query 'Stacks[0].Parameters')"
-
-BEDROCK_ROOT_DIR="/usr/games/minecraft"
-
-# ---------------------------------------------------------------------------------------
-
-# Extracts the raw value for the single given parameter from the entire
-# list of parameters configured for the current CloudFormation stack.
-function get_parameter() {
-    echo "${PARAMETERS}" | jq --raw-output '.[] | select(.ParameterKey=="'"${1}"'") | .ParameterValue'
-}
+source /usr/games/minecraft-environment
 
 # Installs the Bedrock server software, downloads the distributable
 # from its designated source if it's missing and unpacks it in the
@@ -42,13 +12,13 @@ function install_bedrock_server() {
 
     # Download the distributable from the source URL if it doesn't already exist locally.
     if [ ! -f "${BEDROCK_ROOT_DIR}/${distributable}" ]; then
-        bootstrap_log "Downloading server software"
+        minecraft_log "Downloading server software"
         wget "${source}" -O "${BEDROCK_ROOT_DIR}/${distributable}" -q
         ln -sf "${distributable}" "${BEDROCK_ROOT_DIR}/${unversioned_filename}"
     fi
 
     # Install or re-install the configured version package.
-    bootstrap_log "Unpacking server software"
+    minecraft_log "Unpacking server software"
     unzip -oq "${BEDROCK_ROOT_DIR}/${unversioned_filename}" -d "${BEDROCK_ROOT_DIR}"
     chown -Rf games:games "${BEDROCK_ROOT_DIR}"
 }
@@ -61,7 +31,7 @@ function adjust_bedrock_access() {
     local permissions="$(get_parameter PermissionsJSON)"
     local permissions_path="${BEDROCK_ROOT_DIR}/permissions.json"
 
-    bootstrap_log "Configuring server access"
+    minecraft_log "Configuring server access"
     echo "${whitelist}" | tee "${whitelist_path}" > /dev/null
     echo "${permissions}" | tee "${permissions_path}" > /dev/null
     chown -f games:games "${whitelist_path}" "${permissions_path}"
@@ -72,7 +42,7 @@ function adjust_bedrock_access() {
 function adjust_bedrock_server_properties() {
     local properties_path="${BEDROCK_ROOT_DIR}/server.properties"
 
-    bootstrap_log "Configuring server properties"
+    minecraft_log "Configuring server properties"
     cat << END_OF_SERVER_PROPERTIES | tee "${properties_path}" > /dev/null
 server-name=$(get_parameter ServerName)
 gamemode=$(get_parameter GameMode)
@@ -113,7 +83,7 @@ function execute_custom_startup_script() {
     local old_pwd="$(pwd)"
 
     if [[ "${custom_startup_script_url}" =~ https?://.+ ]]; then
-        bootstrap_log "Executing custom startup script"
+        minecraft_log "Executing custom startup script"
         cd "${BEDROCK_ROOT_DIR}"
         bash -c "$(curl -fsSL "${custom_startup_script_url}")"
         cd "${old_pwd}"
@@ -122,8 +92,9 @@ function execute_custom_startup_script() {
 
 # ---------------------------------------------------------------------------------------
 
+minecraft_log "Bootstrapping Bedrock server at $(date)"
 install_bedrock_server
 adjust_bedrock_access
 adjust_bedrock_server_properties
 execute_custom_startup_script
-bootstrap_log "Bootstrapping complete at $(date)"
+minecraft_log "Bootstrapping complete at $(date)"
