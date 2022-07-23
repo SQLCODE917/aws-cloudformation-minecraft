@@ -65,6 +65,7 @@ function adjust_bedrock_access() {
     echo "${whitelist}" | tee "${whitelist_path}" > /dev/null
     echo "${permissions}" | tee "${permissions_path}" > /dev/null
     chown -f games:games "${whitelist_path}" "${permissions_path}"
+    chmod 0664 "${whitelist_path}" "${permissions_path}"
 }
 
 # Constructs the server properties file from the stack configuration.
@@ -103,6 +104,20 @@ server-authoritative-block-breaking=$(get_parameter ServerAuthoritativeBlockBrea
 END_OF_SERVER_PROPERTIES
 
     chown -f games:games "${properties_path}"
+    chmod 0664 "${properties_path}"
+}
+
+# Executes the custom startup script from a remote source, if it has been configured.
+function execute_custom_startup_script() {
+    local custom_startup_script_url="$(get_parameter CustomStartupScriptURL)"
+    local old_pwd="$(pwd)"
+
+    if [[ "${custom_startup_script_url}" =~ https?://.+ ]]; then
+        bootstrap_log "Executing custom startup script"
+        cd "${BEDROCK_ROOT_DIR}"
+        bash -c "$(curl -fsSL "${custom_startup_script_url}")"
+        cd "${old_pwd}"
+    fi
 }
 
 # ---------------------------------------------------------------------------------------
@@ -110,4 +125,5 @@ END_OF_SERVER_PROPERTIES
 install_bedrock_server
 adjust_bedrock_access
 adjust_bedrock_server_properties
+execute_custom_startup_script
 bootstrap_log "Bootstrapping complete at $(date)"
