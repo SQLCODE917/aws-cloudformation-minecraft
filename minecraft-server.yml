@@ -1,0 +1,898 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  This template creates and allocates resources for a fully functional, Minecraft Bedrock
+  server that is startable and stoppable through the API Gateway. You will need to create
+  a key pair for SSH access prior to running this template.
+
+# -------------------------------------------------------------------------------------------------
+Parameters:
+  UUID:
+    Description: "Unique ID used to put all resources in the same namespace."
+    Type: "String"
+    MinLength: 6
+    AllowedPattern: "^[a-z0-9][a-z0-9-]+[a-z0-9]$"
+  AvailabilityZone:
+    Description: "Chosen availability zone for the server instance."
+    Type: "AWS::EC2::AvailabilityZone::Name"
+  VPCCidr:
+    Description: "IPv4 CIDR block for the entire VPC."
+    Type: "String"
+    Default: "192.168.97.0/24"
+    AllowedPattern: "^\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}/\\d{1,2}$"
+  SubnetCidr:
+    Description: "IPv4 CIDR block for the subnet."
+    Type: "String"
+    Default: "192.168.97.0/27"
+    AllowedPattern: "^\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}/\\d{1,2}$"
+  EnableIPv6Support:
+    Description: "Enable IPv6 support in the network."
+    Type: "String"
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+  ServerInstanceType:
+    Description: "Server instance type, choose one of: t3.micro, t3.small, t3.medium, t3.large."
+    Type: "String"
+    Default: "t3.small"
+    AllowedValues:
+      - "t3.micro"
+      - "t3.small"
+      - "t3.medium"
+      - "t3.large"
+  ServerAuthenticationKey:
+    Description: "EC2 key pair used when connecting to the server via SSH."
+    Type: "AWS::EC2::KeyPair::KeyName"
+  VolumeSize:
+    Description: "Size of the root volume in GiB."
+    Type: "Number"
+    Default: 20
+    MinValue: 20
+    MaxValue: 50
+  UseStaticIP:
+    Description: "Determines whether or not to provision and attach an Elastic IP to the EC2 instance."
+    Type: "String"
+    Default: "No"
+    AllowedValues:
+      - "Yes"
+      - "No"
+  AcceptMinecraftTerms:
+    Description: >
+      Accept Minecraft EULA & Privacy Policy, see 
+      https://www.minecraft.net/en-us/download/server/bedrock
+      for reference.
+    Type: "String"
+    Default: "No"
+    AllowedValues:
+      - "Yes"
+      - "No"
+  CustomStartupScriptURL:
+    Description: >
+      URL to a custom start-up script that will be executed as root on every server start up.
+      Leave empty to skip completely. Useful for setting up dynamic DNS for example.
+    Type: "String"
+    Default: ""
+    AllowedPattern: "^(https?://.+)?$"
+  ServerSourceURL:
+    Description: "URL where to download the Minecraft Bedrock Linux server software ZIP package."
+    Type: "String"
+    Default: "https://minecraft.azureedge.net/bin-linux/bedrock-server-1.19.10.03.zip"
+  ServerPort:
+    Description: "UDP port where the server is listening for connections."
+    Type: "Number"
+    Default: 19132
+    MinValue: 2048
+    MaxValue: 65000
+  ServerPortIPv6:
+    Description: "UDP port where the server is listening for IPv6 connections."
+    Type: "Number"
+    Default: 19133
+    MinValue: 2048
+    MaxValue: 65000
+  WhitelistJSON:
+    Description: "Contents of the allowlist.json file that controls player access to the server."
+    Type: "String"
+    Default: "[]"
+  PermissionsJSON:
+    Description: "Contents of the permissions.json file that grants permissions to different users."
+    Type: "String"
+    Default: "[]"
+  ServerName:
+    Description: "Name for the Minecraft server itself."
+    Type: "String"
+    Default: "Awsome McServer"
+    AllowedPattern: "^[^;]+$"
+  GameMode:
+    Description: "Server game mode, choose one of: creative, survival, adventure."
+    Type: "String"
+    Default: "survival"
+    AllowedValues:
+      - "creative"
+      - "survival"
+      - "adventure"
+  ForceGameMode:
+    Description: "Forces the global game mode for all players."
+    Type: "String"
+    Default: "true"
+    AllowedValues:
+      - "true"
+      - "false"
+  Difficulty:
+    Description: "Server difficulty, choose one of: peaceful, easy, normal, hard."
+    Type: "String"
+    Default: "easy"
+    AllowedValues:
+      - "peaceful"
+      - "easy"
+      - "normal"
+      - "hard"
+  AllowCheats:
+    Description: "Flag that indicates whether or not cheats are allowed on the server."
+    Type: "String"
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+  MaximumPlayers:
+    Description: "Maximum number of players allowed on the server."
+    Type: "Number"
+    Default: 8
+    MinValue: 1
+    MaxValue: 30
+  OnlineMode:
+    Description: "Determines whether or not all players must be logged in to Xbox Live."
+    Type: "String"
+    Default: "true"
+    AllowedValues:
+      - "true"
+      - "false"
+  WhitelistOnly:
+    Description: "Determines whether or not all players should be explicitly whitelisted."
+    Type: "String"
+    Default: "true"
+    AllowedValues:
+      - "true"
+      - "false"
+  ViewDistance:
+    Description: "The maximum allowed view distance in number of chunks."
+    Type: "Number"
+    Default: 32
+    MinValue: 5
+    MaxValue: 256
+  TickDistance:
+    Description: "The world will be ticked this many chunks away from any player."
+    Type: "Number"
+    Default: 4
+    MinValue: 4
+    MaxValue: 12
+  PlayerIdleTimeout:
+    Description: >
+      After a player has idled for this many minutes they will be kicked.
+      If set to 0 then players can idle indefinitely.
+    Type: "Number"
+    Default: 15
+    MinValue: 0
+    MaxValue: 3600
+  MaxThreads:
+    Description: "Maximum number of threads the server will try to use."
+    Type: "Number"
+    Default: 8
+    MinValue: 1
+    MaxValue: 512
+  LevelName:
+    Description: "Name of the level / world."
+    Type: "String"
+    Default: "AwsomeLevel"
+    AllowedPattern: "^[A-Za-z0-9-]+$"
+  LevelSeed:
+    Description: "Seed to randomize the game world."
+    Type: "String"
+    Default: ""
+    AllowedPattern: "^[A-Za-z0-9_-]*$"
+  DefaultPlayerPermissionLevel:
+    Description: "Permission level for new players joining for the first time."
+    Type: "String"
+    Default: "member"
+    AllowedValues:
+      - "visitor"
+      - "member"
+      - "operator"
+  TexturepackRequired:
+    Description: "Force clients to use texture packs in the current world."
+    Type: "String"
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+  ContentLogFileEnabled:
+    Description: "Enables logging content errors to a file."
+    Type: "String"
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+  CompressionThreshold:
+    Description: "Determines the smallest size of raw network payload to compress."
+    Type: "Number"
+    Default: 1
+    MinValue: 0
+    MaxValue: 65535
+  ServerAuthoritativeMovement:
+    Description: "Enables server authoritative movement."
+    Type: "String"
+    Default: "server-auth"
+    AllowedValues:
+      - "client-auth"
+      - "server-auth"
+      - "server-auth-with-rewind"
+  CorrectPlayerMovement:
+    Description: >
+      If true, the client position will get corrected to the server 
+      position if the movement score exceeds the threshold.
+    Type: "String"
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+  ServerAuthoritativeBlockBreaking:
+    Description: >
+      If true, the server will compute block mining operations in sync with the client so it 
+      can verify that the client should be able to break blocks when it thinks it can.
+    Type: "String"
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+  PlayerMovementScoreThreshold:
+    Description: "The number of incongruent time intervals needed before abnormal behavior is reported."
+    Type: "Number"
+    Default: 20
+    MinValue: 1
+    MaxValue: 1024
+  PlayerMovementActionDirectionThreshold:
+    Description: "The amount that the player's attack direction and look direction can differ."
+    Type: "String"
+    Default: "0.85"
+    AllowedPattern: "^(0\\.[0-9]+|1\\.0+)$"
+  PlayerMovementDistanceThreshold:
+    Description: >
+      The difference between server and client positions that needs to be exceeded 
+      before abnormal behavior is detected. Disabled by server-authoritative-movement.
+    Type: "String"
+    Default: "0.3"
+    AllowedPattern: "^[0-9]+(\\.[0-9]+)?$"
+  PlayerMovementDurationThreshold:
+    Description: "The duration of time the server and client positions can be out of sync in ms."
+    Type: "Number"
+    Default: 500
+    MinValue: 1
+    MaxValue: 60000
+  WorldBackupRetentionLimit:
+    Description: >
+      The amount of World backups are kept before automatic removal. Also determines the
+      number of different versions to keep.
+    Type: "Number"
+    Default: 90
+    MinValue: 10
+    MaxValue: 720
+
+# -------------------------------------------------------------------------------------------------
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: "Infrastructure"
+        Parameters:
+          - UUID
+          - ServerInstanceType
+          - ServerAuthenticationKey
+          - AvailabilityZone
+          - VPCCidr
+          - SubnetCidr
+          - VolumeSize
+          - UseStaticIP
+          - EnableIPv6Support
+          - WorldBackupRetentionLimit
+      - Label: 
+          default: "EULA"
+        Parameters:
+          - AcceptMinecraftTerms
+      - Label: 
+          default: "Access Control"
+        Parameters:
+          - WhitelistJSON
+          - PermissionsJSON
+      - Label: 
+          default: "Server Configuration"
+        Parameters:
+          - ServerSourceURL
+          - ServerPort
+          - ServerPortIPv6
+          - ServerName
+          - LevelName
+          - LevelSeed
+          - OnlineMode
+          - WhitelistOnly
+          - ContentLogFileEnabled
+          - CustomStartupScriptURL
+      - Label: 
+          default: "Game Settings"
+        Parameters:
+          - GameMode
+          - ForceGameMode
+          - Difficulty
+          - AllowCheats
+          - DefaultPlayerPermissionLevel
+          - TexturepackRequired
+      - Label: 
+          default: "Server Capacity"
+        Parameters:
+          - MaximumPlayers
+          - ViewDistance
+          - TickDistance
+          - PlayerIdleTimeout
+          - MaxThreads
+          - CompressionThreshold
+          - ServerAuthoritativeMovement
+          - CorrectPlayerMovement
+          - ServerAuthoritativeBlockBreaking
+          - PlayerMovementScoreThreshold
+          - PlayerMovementActionDirectionThreshold
+          - PlayerMovementDistanceThreshold
+          - PlayerMovementDurationThreshold
+    ParameterLabels:
+      UUID: 
+        default: "Namespace"
+      ServerInstanceType: 
+        default: "Server Instance Type"
+      ServerAuthenticationKey: 
+        default: "SSH Key Pair"
+      AvailabilityZone: 
+        default: "Availability Zone"
+      VPCCidr: 
+        default: "VPC IP Address Pool"
+      SubnetCidr: 
+        default: "Subnet IP Address Pool"
+      VolumeSize: 
+        default: "Server Root Volume Size"
+      UseStaticIP:
+        default: "Use Static Public IP Address"
+      EnableIPv6Support:
+        default: "Enable IPv6 Support"
+      AcceptMinecraftTerms: 
+        default: "Accept Minecraft Terms"
+      WhitelistJSON: 
+        default: "Allowlist JSON"
+      PermissionsJSON: 
+        default: "Permissions JSON"
+      ServerSourceURL: 
+        default: "Server Software Source URL"
+      CustomStartupScriptURL:
+        default: "Custom Startup Script URL"
+      ServerPort: 
+        default: "Server Listen Port"
+      ServerPortIPv6:
+        default: "Server IPv6 Listen Port"
+      ServerName: 
+        default: "Server Name"
+      LevelName: 
+        default: "Level Name"
+      LevelSeed: 
+        default: "Level Random Seed"
+      OnlineMode: 
+        default: "Online Mode"
+      WhitelistOnly: 
+        default: "Whitelist Only Mode"
+      ContentLogFileEnabled: 
+        default: "Enable Content Log File"
+      GameMode: 
+        default: "Game Mode"
+      ForceGameMode: 
+        default: "Forced Game Mode"
+      Difficulty: 
+        default: "Game Difficulty"
+      AllowCheats: 
+        default: "Cheats Allowed"
+      DefaultPlayerPermissionLevel: 
+        default: "Default Player Permission Level"
+      TexturepackRequired: 
+        default: "Require Texture Packs"
+      MaximumPlayers: 
+        default: "Maximum Number of Players"
+      ViewDistance: 
+        default: "View Distance"
+      TickDistance: 
+        default: "Tick Distance"
+      PlayerIdleTimeout: 
+        default: "Player Idle Timeout"
+      MaxThreads: 
+        default: "Maximum Threads"
+      CompressionThreshold: 
+        default: "Compression Threshold"
+      ServerAuthoritativeMovement: 
+        default: "Server Authoritative Movement"
+      CorrectPlayerMovement: 
+        default: "Correct Player Movement"
+      ServerAuthoritativeBlockBreaking: 
+        default: "Server Authoritative Block Breaking"
+      PlayerMovementScoreThreshold: 
+        default: "Player Movement Score Threshold"
+      PlayerMovementActionDirectionThreshold: 
+        default: "Player Movement Action Direction Threshold"
+      PlayerMovementDistanceThreshold: 
+        default: "Player Movement Distance Threshold"
+      PlayerMovementDurationThreshold: 
+        default: "Player Movement Duration Threshold"
+      WorldBackupRetentionLimit:
+        default: "World Backup Retention Limit"
+
+# -------------------------------------------------------------------------------------------------
+Mappings:
+  # AMI IDs for Canonical, Ubuntu, 20.04 LTS, amd64 focal image build on 2021-11-29
+  RegionToAMIID:
+    eu-central-1:
+      amd64: "ami-0d527b8c289b4af7f"
+    eu-north-1:
+      amd64: "ami-092cce4a19b438926"
+    eu-west-1:
+      amd64: "ami-08ca3fed11864d6bb"
+    eu-west-2:
+      amd64: "ami-0015a39e4b7c0966f"
+    eu-west-3:
+      amd64: "ami-0c6ebbd55ab05f070"
+    us-east-1:
+      amd64: "ami-04505e74c0741db8d"
+
+  # Snapshot IDs for the region specific AMIs
+  RegionToSnapshotID:
+    eu-central-1:
+      amd64: "snap-0868b25604cf2e3d0"
+    eu-north-1:
+      amd64: "snap-086e177dd2aa73806"
+    eu-west-1:
+      amd64: "snap-0bc145ed4603fb16c"
+    eu-west-2:
+      amd64: "snap-06c85fcd99762f325"
+    eu-west-3:
+      amd64: "snap-0f687aca57ad516b2"
+    us-east-1:
+      amd64: "snap-0f7a6eae6d90437c4"
+
+# -------------------------------------------------------------------------------------------------
+Conditions:
+  TermsAccepted: !Equals
+    - !Ref AcceptMinecraftTerms
+    - "Yes"
+  ElasticIPRequested: !Equals
+    - !Ref UseStaticIP
+    - "Yes"
+  UseElasticIP: !And
+    - !Condition TermsAccepted
+    - !Condition ElasticIPRequested
+  IPv6SupportEnabled: !Equals
+    - !Ref EnableIPv6Support
+    - "true"
+
+# -------------------------------------------------------------------------------------------------
+Resources:
+
+  # Dedicated VPC for the environment
+  MinecraftVPC:
+    Type: "AWS::EC2::VPC"
+    Properties:
+      CidrBlock: !Ref VPCCidr
+      EnableDnsHostnames: false
+      EnableDnsSupport: true
+      InstanceTenancy: "default"
+      Tags:
+        - Key: "uuid"
+          Value: !Ref UUID
+        - Key: "project"
+          Value: "minecraft-server"
+        - Key: "region"
+          Value: !Ref "AWS::Region"
+        - Key: "resource-name"
+          Value: "ec2"
+        - Key: "resource-type"
+          Value: "vpc"
+  
+  # Internet Gateway to connect the VPC to the Internet
+  MinecraftInternetGateway:
+    Type: "AWS::EC2::InternetGateway"
+    Properties:
+      Tags:
+        - Key: "uuid"
+          Value: !Ref UUID
+        - Key: "project"
+          Value: "minecraft-server"
+        - Key: "region"
+          Value: !Ref "AWS::Region"
+        - Key: "resource-name"
+          Value: "ec2"
+        - Key: "resource-type"
+          Value: "internet-gateway"
+  
+  # Attach Internet Gateway to the VPC
+  MinecraftInternetGatewayAttachment:
+    Type: "AWS::EC2::VPCGatewayAttachment"
+    Properties:
+      VpcId: !Ref MinecraftVPC
+      InternetGatewayId: !Ref MinecraftInternetGateway
+
+  # Provision a Subnet in the selected Availability Zone
+  MinecraftSubnet:
+    Type: "AWS::EC2::Subnet"
+    Properties:
+      # TODO: Finalize IPv6 support.
+      # AssignIpv6AddressOnCreation: !Ref EnableIPv6Support
+      AvailabilityZone: !Ref AvailabilityZone
+      CidrBlock: !Ref SubnetCidr
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: "uuid"
+          Value: !Ref UUID
+        - Key: "project"
+          Value: "minecraft-server"
+        - Key: "region"
+          Value: !Ref "AWS::Region"
+        - Key: "resource-name"
+          Value: "ec2"
+        - Key: "resource-type"
+          Value: "subnet"
+      VpcId: !Ref MinecraftVPC
+  
+  # Route Table for the VPC
+  MinecraftVPCRouteTable:
+    Type: "AWS::EC2::RouteTable"
+    Properties: 
+      Tags:
+        - Key: "uuid"
+          Value: !Ref UUID
+        - Key: "project"
+          Value: "minecraft-server"
+        - Key: "region"
+          Value: !Ref "AWS::Region"
+        - Key: "resource-name"
+          Value: "ec2"
+        - Key: "resource-type"
+          Value: "route"
+      VpcId: !Ref MinecraftVPC
+
+  # Default Route for the VPC Route Table
+  MinecraftVPCRoute:
+    Type: "AWS::EC2::Route"
+    Properties:
+      RouteTableId: !Ref MinecraftVPCRouteTable
+      DestinationCidrBlock: "0.0.0.0/0"
+      GatewayId: !Ref MinecraftInternetGateway
+    
+  # Attach the Subnet to the custom Route Table
+  MinecraftSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties: 
+      RouteTableId: !Ref MinecraftVPCRouteTable
+      SubnetId: !Ref MinecraftSubnet
+  
+  # Server Security Group
+  MinecraftServerSecurityGroup:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      GroupDescription: "Allows inbound traffic to Minecraft server UDP port."
+      GroupName: "minecraft-server"
+      SecurityGroupEgress: 
+        - CidrIp: "0.0.0.0/0"
+          Description: "Allow outbound HTTPS traffic."
+          IpProtocol: "tcp"
+          FromPort: 443
+          ToPort: 443
+        - CidrIp: "0.0.0.0/0"
+          Description: "Allow outbound HTTP traffic."
+          IpProtocol: "tcp"
+          FromPort: 80
+          ToPort: 80
+      SecurityGroupIngress:
+        - CidrIp: "0.0.0.0/0"
+          Description: "Allow inbound traffic to server port from anywhere."
+          IpProtocol: "udp"
+          FromPort: !Ref ServerPort
+          ToPort: !Ref ServerPort
+        - CidrIpv6: "::/0"
+          Description: "Allow inbound traffic to server IPv6 port from anywhere."
+          IpProtocol: "udp"
+          FromPort: !Ref ServerPortIPv6
+          ToPort: !Ref ServerPortIPv6
+      Tags:
+        - Key: "uuid"
+          Value: !Ref UUID
+        - Key: "project"
+          Value: "minecraft-server"
+        - Key: "region"
+          Value: !Ref "AWS::Region"
+        - Key: "resource-name"
+          Value: "ec2"
+        - Key: "resource-type"
+          Value: "security-group"
+      VpcId: !Ref MinecraftVPC
+
+  # IAM role for the EC2 server instance
+  MinecraftServerRole:
+    Type: "AWS::IAM::Role"
+    Properties: 
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - "ec2.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      # TODO:
+      # ManagedPolicyArns:
+      #  - Cloudwatch
+      RoleName: !Join [ "-", [ "minecraft-server-role", !Ref UUID ] ]
+      Tags:
+        - Key: "uuid"
+          Value: !Ref UUID
+        - Key: "project"
+          Value: "minecraft-server"
+        - Key: "region"
+          Value: !Ref "AWS::Region"
+        - Key: "resource-name"
+          Value: "iam"
+        - Key: "resource-type"
+          Value: "role"
+
+  # Policy document that grants the server access to external resources
+  MinecraftServerPolicy:
+    Type: "AWS::IAM::Policy"
+    Properties:
+      PolicyName: !Join [ "-", [ "minecraft-server-policy", !Ref UUID ] ]
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Action:
+              - "s3:GetObject"
+              - "s3:PutObject"
+              - "s3:PutObjectRetention"
+              - "s3:PutObjectTagging"
+            Resource: !Join [ "", [ !Join [ "-", [ "arn:aws:s3:::minecraft", !Ref UUID ] ], "/*" ] ]
+          - Effect: "Allow"
+            Action:
+              - "s3:ListBucket"
+            Resource: !Join [ "-", [ "arn:aws:s3:::minecraft", !Ref UUID ] ]
+          - Effect: "Allow"
+            Action:
+              - "ec2:DescribeTags"
+            Resource: "*"
+          - Effect: "Allow"
+            Action:
+              - "cloudformation:DescribeStacks"
+            Resource: !Ref "AWS::StackId"
+      Roles:
+        - !Ref MinecraftServerRole
+
+  # IAM Instance Profile for the EC2 Server
+  MinecraftServerProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties: 
+      InstanceProfileName: !Join [ "-", [ "minecraft-server-profile", !Ref UUID ] ]
+      Roles: 
+        - !Ref MinecraftServerRole
+
+  # EC2 Server Instance
+  MinecraftServer:
+    Type: "AWS::EC2::Instance"
+    Condition: TermsAccepted
+    Properties:
+      AvailabilityZone: !Ref AvailabilityZone
+      BlockDeviceMappings: 
+        - DeviceName: "/dev/sda1"
+          Ebs:
+            DeleteOnTermination: true
+            Encrypted: true
+            Iops: 3000
+            SnapshotId: !FindInMap [ RegionToSnapshotID, !Ref "AWS::Region", amd64 ]
+            VolumeSize: !Ref VolumeSize
+            VolumeType: "gp3"
+      CreditSpecification: 
+        CPUCredits: "standard"
+      IamInstanceProfile: !Ref MinecraftServerProfile
+      ImageId: !FindInMap [ RegionToAMIID, !Ref "AWS::Region", amd64 ]
+      InstanceInitiatedShutdownBehavior: "stop"
+      InstanceType: !Ref ServerInstanceType
+      KeyName: !Ref ServerAuthenticationKey
+      Monitoring: false
+      PropagateTagsToVolumeOnCreation: true
+      SecurityGroupIds:
+        - !GetAtt MinecraftServerSecurityGroup.GroupId
+      SourceDestCheck: true
+      SubnetId: !Ref MinecraftSubnet
+      Tags:
+        - Key: "uuid"
+          Value: !Ref UUID
+        - Key: "project"
+          Value: "minecraft-server"
+        - Key: "region"
+          Value: !Ref "AWS::Region"
+        - Key: "resource-name"
+          Value: "ec2"
+        - Key: "resource-type"
+          Value: "instance"
+      UserData:
+        Fn::Base64:
+          !Sub |
+            #!/bin/bash
+            apt-get -y update && apt-get -y upgrade
+            apt-get -y install awscli curl jq openssl screen unzip wget
+            mkdir -p /usr/games/minecraft
+
+            wget "https://raw.githubusercontent.com/Finntaur/aws-cloudformation-minecraft/main/environment.sh" -O /usr/games/minecraft-environment -q
+            wget "https://raw.githubusercontent.com/Finntaur/aws-cloudformation-minecraft/main/bootstrap.sh" -O /usr/games/minecraft-bootstrap -q
+            wget "https://raw.githubusercontent.com/Finntaur/aws-cloudformation-minecraft/main/backup.sh" -O /usr/games/minecraft-backup -q
+            chmod 0755 /usr/games/minecraft-{environment,bootstrap,backup}
+
+            cat << END_OF_LOGROTATE_CONF > /etc/logrotate.d/minecraft
+            /usr/games/minecraft.log
+            {
+              missingok
+              monthly
+              copytruncate
+              rotate 6
+              notifempty
+              compress
+            }
+            END_OF_LOGROTATE_CONF
+            chmod 0644 /etc/logrotate.d/minecraft
+            
+            cat << END_OF_START_SCRIPT > /usr/games/minecraft-start
+            #!/bin/bash
+            echo "Server start initiated at \$(date)" >> /usr/games/minecraft.log
+            pidof "bedrock_server" &> /dev/null && exit
+            /usr/games/minecraft-bootstrap
+            cd /usr/games/minecraft
+            sudo -u games -g games -- screen -wipe minecraft &> /dev/null
+            sudo -u games -g games -- screen -dmS minecraft ./bedrock_server
+            echo "Server started at \$(date)" >> /usr/games/minecraft.log
+            END_OF_START_SCRIPT
+            chmod 0755 /usr/games/minecraft-start
+
+            cat << END_OF_START_SERVICE > /etc/systemd/system/minecraft.service
+            [Unit]
+            Description=Minecraft Bedrock Server
+            After=cloud-final.service
+            [Service]
+            ExecStart=/usr/games/minecraft-start
+            Type=oneshot
+            RemainAfterExit=yes
+            [Install]
+            WantedBy=cloud-init.target
+            END_OF_START_SERVICE
+            chmod 0644 /etc/systemd/system/minecraft.service
+            systemctl restart minecraft
+            systemctl enable minecraft
+
+            cat << END_OF_STOP_SCRIPT > /usr/games/minecraft-stop
+            #!/bin/bash
+            echo "Server shutdown at \$(date)" >> /usr/games/minecraft.log
+            function server_is_up {
+              pidof "bedrock_server" &> /dev/null || return 1
+              return 0
+            }
+            sudo -u games -g games -- screen -S minecraft -p 0 -X stuff "stop^M"
+            for (( i = 0 ; i < 300 ; i++ )); do
+              server_is_up || break
+              sleep 0.1
+            done
+            SERVER_PID=\$(pidof "bedrock_server")
+            if [[ \$SERVER_PID -gt 1 ]]; then
+              kill -9 \$SERVER_PID
+            fi
+            /usr/games/minecraft-backup
+            END_OF_STOP_SCRIPT
+            chmod 0755 /usr/games/minecraft-stop
+
+            cat << END_OF_STOP_SERVICE > /etc/systemd/system/pre-shutdown.service
+            [Unit]
+            Description=Minecraft Server Graceful Shutdown
+            DefaultDependencies=no
+            Before=shutdown.target reboot.target halt.target
+            [Service]
+            Type=oneshot
+            ExecStart=/usr/games/minecraft-stop
+            [Install]
+            WantedBy=halt.target reboot.target shutdown.target
+            END_OF_STOP_SERVICE
+            chmod 0644 /etc/systemd/system/pre-shutdown.service
+            systemctl enable pre-shutdown
+
+            chown -R games:games /usr/games/minecraft
+            grep -qP '^\s*LD_LIBRARY_PATH=.' /etc/environment || \
+              echo "LD_LIBRARY_PATH=." >> /etc/environment
+    DependsOn:
+      - MinecraftS3Bucket
+
+  # Elastic IP Address
+  MinecraftStaticIPAddress:
+    Type: "AWS::EC2::EIP"
+    Condition: UseElasticIP
+    Properties:
+      InstanceId: !Ref MinecraftServer
+      Tags:
+        - Key: "uuid"
+          Value: !Ref UUID
+        - Key: "project"
+          Value: "minecraft-server"
+        - Key: "region"
+          Value: !Ref "AWS::Region"
+        - Key: "resource-name"
+          Value: "ec2"
+        - Key: "resource-type"
+          Value: "elastic-ip"
+    DependsOn:
+      - MinecraftInternetGatewayAttachment
+
+  # S3 Bucket for World Backups
+  MinecraftS3Bucket:
+    Type: "AWS::S3::Bucket"
+    Properties: 
+      AccessControl: "Private"
+      BucketEncryption: 
+        ServerSideEncryptionConfiguration: 
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: "AES256"
+      BucketName: !Join [ "-", [ "minecraft", !Ref UUID ] ]
+      PublicAccessBlockConfiguration: 
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      LifecycleConfiguration:
+        Rules:
+          - Id: BackupExpirationRule
+            Prefix: backups
+            Status: Enabled
+            ExpirationInDays: !Ref WorldBackupRetentionLimit
+            NoncurrentVersionExpiration:
+              NewerNoncurrentVersions: !Ref WorldBackupRetentionLimit
+              NoncurrentDays: !Ref WorldBackupRetentionLimit
+      VersioningConfiguration:
+        Status: Enabled
+      Tags:
+        - Key: "uuid"
+          Value: !Ref UUID
+        - Key: "project"
+          Value: "minecraft-server"
+        - Key: "region"
+          Value: !Ref "AWS::Region"
+        - Key: "resource-name"
+          Value: "s3"
+        - Key: "resource-type"
+          Value: "bucket"
+    DeletionPolicy: "Retain"
+
+# -------------------------------------------------------------------------------------------------
+
+  # TODO:
+  # Lambda Functions (Start/Stop/Status)
+  # API Gateway
+
+# -------------------------------------------------------------------------------------------------
+Outputs:
+  InstanceID:
+    Description: "EC2 server instance ID"
+    Value: !Ref MinecraftServer
+  PublicIPAddress:
+    Description: "EC2 server public IP address"
+    Value: !GetAtt MinecraftServer.PublicIp
+  # TODO: Uncomment when CloudFormation supports exposing IPv6 addresses.
+  # PublicIPv6Address:
+  #   Description: "EC2 server public IPv6 address"
+  #   Value: !GetAtt MinecraftServer.PublicIpv6
+  ServerSecurityGroup:
+    Description: "EC2 server security group ID"
+    Value: !GetAtt MinecraftServerSecurityGroup.GroupId
+  BucketARN:
+    Description: "S3 bucket ARN"
+    Value: !GetAtt MinecraftS3Bucket.Arn
