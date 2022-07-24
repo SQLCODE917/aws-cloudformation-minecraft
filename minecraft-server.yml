@@ -278,8 +278,9 @@ Parameters:
   KeepServerAlwaysUp:
     Description: >
       If Yes, the server shutdown schedule and start-up hooks are going to be disabled and
-      the server is left running indefinitely. Set to false to enable scheduled shutdown and
-      manual start up triggers.
+      the server is left running indefinitely. Set to No to enable scheduled shutdown and
+      manual start up triggers. This will also determine whether or not to provision resources
+      that are needed to manage a partial server uptime.
     Type: "String"
     Default: "Yes"
     AllowedValues:
@@ -292,6 +293,11 @@ Parameters:
     Type: "String"
     Default: "cron(30 22 * * ? *)"
     AllowedPattern: "^(cron|rate)\\(.*\\)$"
+  ServerStarterAPIPath:
+    Description: "Path part of the API URI that triggers the start up of a stopped server."
+    Type: "String"
+    Default: "/start"
+    AllowedPattern: "^/[a-zA-Z0-9._/-]*$"    
 
 # -------------------------------------------------------------------------------------------------
 Metadata:
@@ -362,6 +368,7 @@ Metadata:
         Parameters:
           - KeepServerAlwaysUp
           - ServerShutdownScheduleExpression
+          - ServerStarterAPIPath
     ParameterLabels:
       UUID: 
         default: "Namespace"
@@ -451,6 +458,8 @@ Metadata:
         default: "Keep Server Always Up"
       ServerShutdownScheduleExpression:
         default: "Server Shutdown Schedule Expression"
+      ServerStarterAPIPath:
+        default: "API Path to the Server Starter"
 
 # -------------------------------------------------------------------------------------------------
 Mappings:
@@ -768,7 +777,12 @@ Resources:
             Action:
               - "logs:CreateLogStream"
               - "logs:PutLogEvents"
-            Resource: !Join [ ":", [ "arn:aws:logs", !Ref "AWS::Region", !Ref "AWS::AccountId", "log-group:/aws/lambda/*:*" ] ]
+            Resource: !Join
+              - ":"
+              - - "arn:aws:logs"
+                - !Ref "AWS::Region"
+                - !Ref "AWS::AccountId"
+                - "log-group:/aws/lambda/*:*"
           - Effect: "Allow"
             Action:
               - "ec2:DescribeInstanceStatus"
@@ -776,7 +790,12 @@ Resources:
           - Effect: "Allow"
             Action:
               - "ec2:StartInstances"
-            Resource: !Join [ ":", [ "arn:aws:logs", !Ref "AWS::Region", !Ref "AWS::AccountId", !Join [ "/", [ "instance", !Ref MinecraftServer ] ] ] ]
+            Resource: !Join
+              - ":"
+              - - "arn:aws:ec2"
+                - !Ref "AWS::Region"
+                - !Ref "AWS::AccountId"
+                - !Join [ "/", [ "instance", !Ref MinecraftServer ] ]
       Roles:
         - !Ref MinecraftServerStartFunctionRole
 
@@ -796,7 +815,12 @@ Resources:
             Action:
               - "logs:CreateLogStream"
               - "logs:PutLogEvents"
-            Resource: !Join [ ":", [ "arn:aws:logs", !Ref "AWS::Region", !Ref "AWS::AccountId", "log-group:/aws/lambda/*:*" ] ]
+            Resource: !Join
+              - ":"
+              - - "arn:aws:logs"
+                - !Ref "AWS::Region"
+                - !Ref "AWS::AccountId"
+                - "log-group:/aws/lambda/*:*"
           - Effect: "Allow"
             Action:
               - "ec2:DescribeInstanceStatus"
@@ -804,7 +828,12 @@ Resources:
           - Effect: "Allow"
             Action:
               - "ec2:StopInstances"
-            Resource: !Join [ ":", [ "arn:aws:logs", !Ref "AWS::Region", !Ref "AWS::AccountId", !Join [ "/", [ "instance", !Ref MinecraftServer ] ] ] ]
+            Resource: !Join
+              - ":"
+              - - "arn:aws:ec2"
+                - !Ref "AWS::Region"
+                - !Ref "AWS::AccountId"
+                - !Join [ "/", [ "instance", !Ref MinecraftServer ] ]
       Roles:
         - !Ref MinecraftServerStopFunctionRole
 
@@ -1146,10 +1175,82 @@ Resources:
     Type: "AWS::Lambda::Permission"
     Condition: EnableServerPartialUptime
     Properties:
-      FunctionName: !Ref MinecraftServerStopFunction
       Action: "lambda:InvokeFunction"
+      FunctionName: !Ref MinecraftServerStopFunction
       Principal: "events.amazonaws.com"
       SourceArn: !GetAtt MinecraftServerScheduledStopEvent.Arn
+
+  # Public HTTP API for managing the Minecraft server
+  MinecraftServerAPIGateway:
+    Type: "AWS::ApiGatewayV2::Api"
+    Condition: EnableServerPartialUptime
+    Properties:
+      Description: "A public HTTP API for managing and monitoring the Minecraft server."
+      # DisableExecuteApiEndpoint: true
+      Name: !Join [ "-", [ "minecraft-server-api", !Ref UUID ] ]
+      ProtocolType: "HTTP"
+      Tags:
+        uuid: !Ref UUID
+        project: "minecraft-server"
+        region: !Ref "AWS::Region"
+        resource-name: "api-gateway"
+        resource-type: "api"
+
+  # Default stage for the management API
+  MinecraftServerAPIDefaultStage:
+    Type: "AWS::ApiGatewayV2::Stage"
+    Condition: EnableServerPartialUptime
+    Properties:
+      ApiId: !Ref MinecraftServerAPIGateway
+      AutoDeploy: true
+      DefaultRouteSettings:
+        ThrottlingBurstLimit: 10
+        ThrottlingRateLimit: 10
+      Description: "Default stage for the Minecraft server management HTTP API."
+      StageName: "$default"
+      Tags:
+        uuid: !Ref UUID
+        project: "minecraft-server"
+        region: !Ref "AWS::Region"
+        resource-name: "api-gateway"
+        resource-type: "stage"
+
+  # API Integration for the server start function
+  MinecraftServerAPIIntegration:
+    Type: "AWS::ApiGatewayV2::Integration"
+    Condition: EnableServerPartialUptime
+    Properties:
+      ApiId: !Ref MinecraftServerAPIGateway
+      Description: "API integration for the Minecraft server starter lambda function."
+      IntegrationMethod: "POST"
+      IntegrationType: "AWS_PROXY"
+      IntegrationUri: !Join
+        - ""
+        - - "arn:aws:apigateway:"
+          - !Ref "AWS::Region"
+          - ":lambda:path/2015-03-31/functions/"
+          - !GetAtt MinecraftServerStartFunction.Arn
+          - "/invocations"
+      PayloadFormatVersion: "2.0"
+
+  # API route for starting up the Minecraft server
+  MinecraftServerStartAPIRoute:
+    Type: "AWS::ApiGatewayV2::Route"
+    Condition: EnableServerPartialUptime
+    Properties:
+      ApiId: !Ref MinecraftServerAPIGateway
+      AuthorizationType: "NONE"
+      RouteKey: !Join [ "", [ "GET ", !Ref ServerStarterAPIPath ] ]
+      Target: !Join [ "/", [ "integrations", !Ref MinecraftServerAPIIntegration ] ]
+
+  # Grants permission for the API integration to invoke the server starter function
+  MinecraftServerStartAPIGatewayPermission:
+    Type: "AWS::Lambda::Permission"
+    Condition: EnableServerPartialUptime
+    Properties:
+      Action: "lambda:InvokeFunction"
+      FunctionName: !Ref MinecraftServerStartFunction
+      Principal: "apigateway.amazonaws.com"
 
 # -------------------------------------------------------------------------------------------------
 Outputs:
@@ -1169,3 +1270,10 @@ Outputs:
   BucketARN:
     Description: "S3 bucket ARN"
     Value: !GetAtt MinecraftS3Bucket.Arn
+  ServerStartAPIEndpoint:
+    Condition: EnableServerPartialUptime
+    Description: "API endpoint for starting a stopped server"
+    Value: !Join
+      - ""
+      - - !GetAtt MinecraftServerAPIGateway.ApiEndpoint
+        - !Ref ServerStarterAPIPath
