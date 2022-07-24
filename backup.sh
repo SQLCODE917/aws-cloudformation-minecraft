@@ -7,7 +7,7 @@ function backup_minecraft_worlds() {
     local bucket_name="minecraft-$(get_parameter UUID)"
 
     rm -f "${backup_filename}"
-    tar -c -j -f "${backup_filename}" -C "${BEDROCK_ROOT_DIR}"
+    tar -c -j -f "${backup_filename}" -C "${BEDROCK_ROOT_DIR}" worlds
     aws s3 cp "${backup_filename}" "s3://${bucket_name}/backups/" && rm -f "${backup_filename}"
 }
 
