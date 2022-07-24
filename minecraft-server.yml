@@ -627,9 +627,6 @@ Resources:
                 - "ec2.amazonaws.com"
             Action:
               - "sts:AssumeRole"
-      # TODO:
-      # ManagedPolicyArns:
-      #  - Cloudwatch
       RoleName: !Join [ "-", [ "minecraft-server-role", !Ref UUID ] ]
       Tags:
         - Key: "uuid"
@@ -642,6 +639,59 @@ Resources:
           Value: "iam"
         - Key: "resource-type"
           Value: "role"
+
+  # IAM role for the server start lambda function
+  MinecraftServerStartFunctionRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      RoleName: !Join [ "-", [ "minecraft-server-start-role", !Ref UUID ] ]
+      Tags:
+        - Key: "uuid"
+          Value: !Ref UUID
+        - Key: "project"
+          Value: "minecraft-server"
+        - Key: "region"
+          Value: !Ref "AWS::Region"
+        - Key: "resource-name"
+          Value: "iam"
+        - Key: "resource-type"
+          Value: "role"
+
+  # IAM role for the server stop lambda function
+  MinecraftServerStopFunctionRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      RoleName: !Join [ "-", [ "minecraft-server-stop-role", !Ref UUID ] ]
+      Tags:
+        - Key: "uuid"
+          Value: !Ref UUID
+        - Key: "project"
+          Value: "minecraft-server"
+        - Key: "region"
+          Value: !Ref "AWS::Region"
+        - Key: "resource-name"
+          Value: "iam"
+        - Key: "resource-type"
+          Value: "role"
+
 
   # Policy document that grants the server access to external resources
   MinecraftServerPolicy:
@@ -672,6 +722,62 @@ Resources:
             Resource: !Ref "AWS::StackId"
       Roles:
         - !Ref MinecraftServerRole
+
+  # Policy document that grants the server access to external resources
+  MinecraftServerStartFunctionPolicy:
+    Type: "AWS::IAM::Policy"
+    Properties:
+      PolicyName: !Join [ "-", [ "minecraft-server-start-policy", !Ref UUID ] ]
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Action:
+              - "logs:CreateLogGroup"
+            Resource: !Join [ ":", [ "arn:aws:logs", !Ref "AWS::Region", !Ref "AWS::AccountId", "*" ] ]
+          - Effect: "Allow"
+            Action:
+              - "logs:CreateLogStream"
+              - "logs:PutLogEvents"
+            Resource: !Join [ ":", [ "arn:aws:logs", !Ref "AWS::Region", !Ref "AWS::AccountId", "log-group:/aws/lambda/*:*" ] ]
+          - Effect: "Allow"
+            Action:
+              - "ec2:DescribeInstanceStatus"
+            Resource: "*"
+          - Effect: "Allow"
+            Action:
+              - "ec2:StartInstances"
+            Resource: !Join [ ":", [ "arn:aws:logs", !Ref "AWS::Region", !Ref "AWS::AccountId", !Join [ "/", [ "instance", !Ref MinecraftServer ] ] ] ]
+      Roles:
+        - !Ref MinecraftServerStartFunctionRole
+
+  # Policy document that grants the server access to external resources
+  MinecraftServerStopFunctionPolicy:
+    Type: "AWS::IAM::Policy"
+    Properties:
+      PolicyName: !Join [ "-", [ "minecraft-server-stop-policy", !Ref UUID ] ]
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Action:
+              - "logs:CreateLogGroup"
+            Resource: !Join [ ":", [ "arn:aws:logs", !Ref "AWS::Region", !Ref "AWS::AccountId", "*" ] ]
+          - Effect: "Allow"
+            Action:
+              - "logs:CreateLogStream"
+              - "logs:PutLogEvents"
+            Resource: !Join [ ":", [ "arn:aws:logs", !Ref "AWS::Region", !Ref "AWS::AccountId", "log-group:/aws/lambda/*:*" ] ]
+          - Effect: "Allow"
+            Action:
+              - "ec2:DescribeInstanceStatus"
+            Resource: "*"
+          - Effect: "Allow"
+            Action:
+              - "ec2:StopInstances"
+            Resource: !Join [ ":", [ "arn:aws:logs", !Ref "AWS::Region", !Ref "AWS::AccountId", !Join [ "/", [ "instance", !Ref MinecraftServer ] ] ] ]
+      Roles:
+        - !Ref MinecraftServerStopFunctionRole
 
   # IAM Instance Profile for the EC2 Server
   MinecraftServerProfile:
@@ -872,11 +978,125 @@ Resources:
           Value: "bucket"
     DeletionPolicy: "Retain"
 
-# -------------------------------------------------------------------------------------------------
+  # Server Start up Lambda Script
+  MinecraftServerStartFunction:
+    Type: AWS::Lambda::Function
+    Properties: 
+      Code: 
+        ZipFile: |
+          import boto3
+          import os
 
-  # TODO:
-  # Lambda Functions (Start/Stop/Status)
-  # API Gateway
+          def handler(event, context):
+              try:
+                  print('Server start up requested.')
+                  region = os.getenv('AWS_REGION')
+                  instance_id = os.getenv('INSTANCE_ID')
+                  ec2 = boto3.client('ec2', region_name=region)
+
+                  if not instance_id:
+                      raise RuntimeError('Could not resolve server instance ID.')
+
+                  statuses = ec2.describe_instance_status(InstanceIds=[instance_id])
+                  try:
+                      state = statuses['InstanceStatuses'][0]['InstanceState']['Name']
+                  except:
+                      state = None
+
+                  if 'stopped' == state or None is state:
+                      print('Starting server instance.')
+                      ec2.start_instances(InstanceIds=[instance_id])
+                  else:
+                      print('Server is currently not stopped, start up not initiated.')
+                      return { 'statusCode': 409, 'body': 'Conflicting State' }
+
+                  print('Request completed!')
+              except Exception as exception:
+                  print('Failed to start up the server!')
+                  print(exception)
+                  return { 'statusCode': 500, 'body': 'Server Error' }
+
+              return { 'statusCode': 200, 'body': 'Started' }
+      Description: "Initiates the server start up of a stopped Minecraft EC2 instance."
+      Environment: 
+        Variables:
+          INSTANCE_ID: !Ref MinecraftServer
+      Handler: "index.handler"
+      PackageType: "Zip"
+      Role: !GetAtt MinecraftServerStartFunctionRole.Arn
+      Runtime: "python3.9"
+      Tags:
+        - Key: "uuid"
+          Value: !Ref UUID
+        - Key: "project"
+          Value: "minecraft-server"
+        - Key: "region"
+          Value: !Ref "AWS::Region"
+        - Key: "resource-name"
+          Value: "lambda"
+        - Key: "resource-type"
+          Value: "function"
+      Timeout: 10
+
+  # Server Shutdown Lambda Script
+  MinecraftServerStopFunction:
+    Type: AWS::Lambda::Function
+    Properties: 
+      Code: 
+        ZipFile: |
+          import boto3
+          import os
+
+          def handler(event, context):
+              try:
+                  print('Server shutdown requested.')
+                  region = os.getenv('AWS_REGION')
+                  instance_id = os.getenv('INSTANCE_ID')
+                  ec2 = boto3.client('ec2', region_name=region)
+
+                  if not instance_id:
+                      raise RuntimeError('Could not resolve server instance ID.')
+
+                  statuses = ec2.describe_instance_status(InstanceIds=[instance_id])
+                  try:
+                      state = statuses['InstanceStatuses'][0]['InstanceState']['Name']
+                  except:
+                      state = None
+
+                  if 'running' == state:
+                      print('Initializing server shutdown.')
+                      ec2.stop_instances(InstanceIds=[instance_id])
+                  else:
+                      print('Server is not in running state, shutdown not initiated.')
+                      return { 'statusCode': 409, 'body': 'Conflicting State' }
+
+                  print('Request completed!')
+              except Exception as exception:
+                  print('Failed to initiate server shutdown!')
+                  print(exception)
+                  return { 'statusCode': 500, 'body': 'Server Error' }
+
+              return { 'statusCode': 200, 'body': 'Stopped' }
+      Description: "Initiates a server shutdown and stops the Minecraft EC2 instance."
+      Environment: 
+        Variables:
+          INSTANCE_ID: !Ref MinecraftServer
+      Handler: "index.handler"
+      PackageType: "Zip"
+      Role: !GetAtt MinecraftServerStopFunctionRole.Arn
+      Runtime: "python3.9"
+      Tags:
+        - Key: "uuid"
+          Value: !Ref UUID
+        - Key: "project"
+          Value: "minecraft-server"
+        - Key: "region"
+          Value: !Ref "AWS::Region"
+        - Key: "resource-name"
+          Value: "lambda"
+        - Key: "resource-type"
+          Value: "function"
+      Timeout: 10
 
 # -------------------------------------------------------------------------------------------------
 Outputs:
