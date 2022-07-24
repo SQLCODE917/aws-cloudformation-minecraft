@@ -275,6 +275,23 @@ Parameters:
     Default: 90
     MinValue: 10
     MaxValue: 720
+  KeepServerAlwaysUp:
+    Description: >
+      If Yes, the server shutdown schedule and start-up hooks are going to be disabled and
+      the server is left running indefinitely. Set to false to enable scheduled shutdown and
+      manual start up triggers.
+    Type: "String"
+    Default: "Yes"
+    AllowedValues:
+      - "Yes"
+      - "No"
+  ServerShutdownScheduleExpression:
+    Description: >
+      An expression for scheduled server shutdown. See:
+      https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-create-rule-schedule.html
+    Type: "String"
+    Default: "cron(30 22 * * ? *)"
+    AllowedPattern: "^(cron|rate)\\(.*\\)$"
 
 # -------------------------------------------------------------------------------------------------
 Metadata:
@@ -340,6 +357,11 @@ Metadata:
           - PlayerMovementActionDirectionThreshold
           - PlayerMovementDistanceThreshold
           - PlayerMovementDurationThreshold
+      - Label:
+          default: "Scheduling"
+        Parameters:
+          - KeepServerAlwaysUp
+          - ServerShutdownScheduleExpression
     ParameterLabels:
       UUID: 
         default: "Namespace"
@@ -425,6 +447,10 @@ Metadata:
         default: "Player Movement Duration Threshold"
       WorldBackupRetentionLimit:
         default: "World Backup Retention Limit"
+      KeepServerAlwaysUp:
+        default: "Keep Server Always Up"
+      ServerShutdownScheduleExpression:
+        default: "Server Shutdown Schedule Expression"
 
 # -------------------------------------------------------------------------------------------------
 Mappings:
@@ -472,6 +498,9 @@ Conditions:
   IPv6SupportEnabled: !Equals
     - !Ref EnableIPv6Support
     - "true"
+  EnableServerPartialUptime: !Equals
+    - !Ref KeepServerAlwaysUp
+    - "No"
 
 # -------------------------------------------------------------------------------------------------
 Resources:
@@ -1097,6 +1126,30 @@ Resources:
         - Key: "resource-type"
           Value: "function"
       Timeout: 10
+
+  # Event rule that periodically shuts the server instance down by
+  # invoking the shutdown lambda function
+  MinecraftServerScheduledStopEvent:
+    Type: "AWS::Events::Rule"
+    Condition: EnableServerPartialUptime
+    Properties:
+      Description: "Minecraft EC2 instance shutdown scheduler."
+      ScheduleExpression: !Ref ServerShutdownScheduleExpression
+      State: "ENABLED"
+      Targets:
+        - Id: !Join [ "-", [ "minecraft-stopper", !Ref UUID ] ]
+          Arn: !GetAtt MinecraftServerStopFunction.Arn
+
+  # Grants permission for the shutdown scheduler to invoke the shutdown
+  # lambda function
+  MinecraftServerStopSchedulerLambdaPermission: 
+    Type: "AWS::Lambda::Permission"
+    Condition: EnableServerPartialUptime
+    Properties:
+      FunctionName: !Ref MinecraftServerStopFunction
+      Action: "lambda:InvokeFunction"
+      Principal: "events.amazonaws.com"
+      SourceArn: !GetAtt MinecraftServerScheduledStopEvent.Arn
 
 # -------------------------------------------------------------------------------------------------
 Outputs:
