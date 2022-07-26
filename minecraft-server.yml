@@ -514,6 +514,50 @@ Conditions:
 # -------------------------------------------------------------------------------------------------
 Resources:
 
+  # Minecraft server application configurateion, i.e. properties
+  MinecraftServerProperties:
+    Type: "AWS::SSM::Parameter"
+    Properties:
+      Description: Contents of the server.properties configuration file.
+      Name: !Join [ "-", [ "minecraft-server", !Ref UUID, "config" ] ]
+      Tags:
+        uuid: !Ref UUID
+        project: "minecraft-server"
+        region: !Ref "AWS::Region"
+        resource-name: "ssm"
+        resource-type: "parameter"
+      Tier: Standard
+      Type: String
+      Value: !Join
+        - "\n"
+        - - !Join [ "=", [ "server-name", !Ref ServerName ] ]
+          - !Join [ "=", [ "gamemode", !Ref GameMode ] ]
+          - !Join [ "=", [ "force-gamemode", !Ref ForceGameMode ] ]
+          - !Join [ "=", [ "difficulty", !Ref Difficulty ] ]
+          - !Join [ "=", [ "allow-cheats", !Ref AllowCheats ] ]
+          - !Join [ "=", [ "max-players", !Ref MaximumPlayers ] ]
+          - !Join [ "=", [ "online-mode", !Ref OnlineMode ] ]
+          - !Join [ "=", [ "allow-list", !Ref WhitelistOnly ] ]
+          - !Join [ "=", [ "server-port", !Ref ServerPort ] ]
+          - !Join [ "=", [ "server-portv6", !Ref ServerPortIPv6 ] ]
+          - !Join [ "=", [ "view-distance", !Ref ViewDistance ] ]
+          - !Join [ "=", [ "tick-distance", !Ref TickDistance ] ]
+          - !Join [ "=", [ "player-idle-timeout", !Ref PlayerIdleTimeout ] ]
+          - !Join [ "=", [ "max-threads", !Ref MaxThreads ] ]
+          - !Join [ "=", [ "level-name", !Ref LevelName ] ]
+          - !Join [ "=", [ "level-seed", !Ref LevelSeed ] ]
+          - !Join [ "=", [ "default-player-permission-level", !Ref DefaultPlayerPermissionLevel ] ]
+          - !Join [ "=", [ "texturepack-required", !Ref TexturepackRequired ] ]
+          - !Join [ "=", [ "content-log-file-enabled", !Ref ContentLogFileEnabled ] ]
+          - !Join [ "=", [ "compression-threshold", !Ref CompressionThreshold ] ]
+          - !Join [ "=", [ "server-authoritative-movement", !Ref ServerAuthoritativeMovement ] ]
+          - !Join [ "=", [ "player-movement-score-threshold", !Ref PlayerMovementScoreThreshold ] ]
+          - !Join [ "=", [ "player-movement-action-direction-threshold", !Ref PlayerMovementActionDirectionThreshold ] ]
+          - !Join [ "=", [ "player-movement-distance-threshold", !Ref PlayerMovementDistanceThreshold ] ]
+          - !Join [ "=", [ "player-movement-duration-threshold-in-ms", !Ref PlayerMovementDurationThreshold ] ]
+          - !Join [ "=", [ "correct-player-movement", !Ref CorrectPlayerMovement ] ]
+          - !Join [ "=", [ "server-authoritative-block-breaking", !Ref ServerAuthoritativeBlockBreaking ] ]
+
   # Dedicated VPC for the environment
   MinecraftVPC:
     Type: "AWS::EC2::VPC"
@@ -730,7 +774,6 @@ Resources:
         - Key: "resource-type"
           Value: "role"
 
-
   # Policy document that grants the server access to external resources
   MinecraftServerPolicy:
     Type: "AWS::IAM::Policy"
@@ -758,6 +801,17 @@ Resources:
             Action:
               - "cloudformation:DescribeStacks"
             Resource: !Ref "AWS::StackId"
+          - Effect: "Allow"
+            Action:
+              - "ssm:GetParameter"
+            Resource: !Join
+              - ""
+              - - "arn:aws:ssm:"
+                - !Ref "AWS::Region"
+                - ":"
+                - !Ref "AWS::AccountId"
+                - ":parameter/"
+                - !Ref MinecraftServerProperties
       Roles:
         - !Ref MinecraftServerRole
 

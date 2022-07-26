@@ -40,4 +40,13 @@ function get_parameter() {
     echo "${PARAMETERS}" | jq --raw-output '.[] | select(.ParameterKey=="'"${1}"'") | .ParameterValue'
 }
 
+# Fetch value from SSM parameter store.
+function get_ssm_parameter() {
+    aws ssm get-parameter \
+        --name "${1}" \
+        --region "${AWS_REGION}" \
+        --query 'Parameter.Value' \
+        --output text
+}
+
 minecraft_log "Environment initialization complete at $(date)"
