@@ -1,0 +1,11 @@
+[Unit]
+Description=Minecraft Server Graceful Shutdown
+DefaultDependencies=no
+Before=shutdown.target reboot.target halt.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/games/minecraft-stop
+
+[Install]
+WantedBy=halt.target reboot.target shutdown.target

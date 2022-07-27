@@ -1,0 +1,11 @@
+[Unit]
+Description=Minecraft Bedrock Server
+After=cloud-final.service
+
+[Service]
+ExecStart=/usr/games/minecraft-start
+Type=oneshot
+RemainAfterExit=yes
+
+[Install]
+WantedBy=cloud-init.target
