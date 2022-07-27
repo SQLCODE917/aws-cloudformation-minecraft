@@ -15,9 +15,9 @@ install -C -o root -g root -m 0755 backup.sh "${GAMES_DIR}/minecraft-backup"
 install -C -o root -g root -m 0755 start.sh "${GAMES_DIR}/minecraft-start"
 install -C -o root -g root -m 0755 stop.sh "${GAMES_DIR}/minecraft-stop"
 
-install -C -o root -g root -m 0644 -d logrotate.conf /etc/logrotate.d/minecraft
-install -C -o root -g root -m 0644 -d minecraft.service /etc/systemd/system/minecraft.service
-install -C -o root -g root -m 0644 -d pre-shutdown.service /etc/systemd/system/pre-shutdown.service
+install -C -o root -g root -m 0644 -D logrotate.conf /etc/logrotate.d/minecraft
+install -C -o root -g root -m 0644 -D minecraft.service /etc/systemd/system/minecraft.service
+install -C -o root -g root -m 0644 -D pre-shutdown.service /etc/systemd/system/pre-shutdown.service
 
 grep -qP '^\s*LD_LIBRARY_PATH=.' /etc/environment || echo "LD_LIBRARY_PATH=." >> /etc/environment
 
