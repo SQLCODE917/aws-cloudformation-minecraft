@@ -514,12 +514,12 @@ Conditions:
 # -------------------------------------------------------------------------------------------------
 Resources:
 
-  # Minecraft server application configurateion, i.e. properties
-  MinecraftServerProperties:
+  # Minecraft server application configuration, i.e. properties
+  MinecraftServerPropertiesParameter:
     Type: "AWS::SSM::Parameter"
     Properties:
-      Description: Contents of the server.properties configuration file.
-      Name: !Join [ "-", [ "minecraft-server", !Ref UUID, "config" ] ]
+      Description: "Contents of the server.properties configuration file."
+      Name: !Join [ "", [ "/minecraft-server/", !Ref UUID, "/properties" ] ]
       Tags:
         uuid: !Ref UUID
         project: "minecraft-server"
@@ -557,6 +557,79 @@ Resources:
           - !Join [ "=", [ "player-movement-duration-threshold-in-ms", !Ref PlayerMovementDurationThreshold ] ]
           - !Join [ "=", [ "correct-player-movement", !Ref CorrectPlayerMovement ] ]
           - !Join [ "=", [ "server-authoritative-block-breaking", !Ref ServerAuthoritativeBlockBreaking ] ]
+
+  # Minecraft server application configurateion, i.e. properties
+  MinecraftServerSourceParameter:
+    Type: "AWS::SSM::Parameter"
+    Properties:
+      Description: "Location of the Minecraft Bedrock distributable."
+      Name: !Join [ "", [ "/minecraft-server/", !Ref UUID, "/source" ] ]
+      Tags:
+        uuid: !Ref UUID
+        project: "minecraft-server"
+        region: !Ref "AWS::Region"
+        resource-name: "ssm"
+        resource-type: "parameter"
+      Tier: Standard
+      Type: String
+      Value: !Ref ServerSourceURL
+
+  # Minecraft server access configuration, i.e. allowlist/whitelist file
+  MinecraftServerWhitelistSecret:
+    Type: "AWS::SecretsManager::Secret"
+    Properties: 
+      Description: "Contents of the allowlist.json configuration file."
+      Name: !Join [ "", [ "/minecraft-server/", !Ref UUID, "/whitelist" ] ]
+      SecretString: !Ref WhitelistJSON
+      Tags: 
+        - Key: "uuid"
+          Value: !Ref UUID
+        - Key: "project"
+          Value: "minecraft-server"
+        - Key: "region"
+          Value: !Ref "AWS::Region"
+        - Key: "resource-name"
+          Value: "secrets"
+        - Key: "resource-type"
+          Value: "secret"
+
+  # Minecraft server permissions configuration
+  MinecraftServerPermissionsSecret:
+    Type: "AWS::SecretsManager::Secret"
+    Properties: 
+      Description: "Contents of the permissions.json configuration file."
+      Name: !Join [ "", [ "/minecraft-server/", !Ref UUID, "/permissions" ] ]
+      SecretString: !Ref PermissionsJSON
+      Tags: 
+        - Key: "uuid"
+          Value: !Ref UUID
+        - Key: "project"
+          Value: "minecraft-server"
+        - Key: "region"
+          Value: !Ref "AWS::Region"
+        - Key: "resource-name"
+          Value: "secrets"
+        - Key: "resource-type"
+          Value: "secret"
+  
+  # Minecraft server custom startup script URL
+  MinecraftServerCustomScriptURLSecret:
+    Type: "AWS::SecretsManager::Secret"
+    Properties: 
+      Description: "Location of the custom start up script."
+      Name: !Join [ "", [ "/minecraft-server/", !Ref UUID, "/custom-script" ] ]
+      SecretString: !Join [ "", [ "\"", !Ref CustomStartupScriptURL, "\"" ] ]
+      Tags: 
+        - Key: "uuid"
+          Value: !Ref UUID
+        - Key: "project"
+          Value: "minecraft-server"
+        - Key: "region"
+          Value: !Ref "AWS::Region"
+        - Key: "resource-name"
+          Value: "secrets"
+        - Key: "resource-type"
+          Value: "secret"
 
   # Dedicated VPC for the environment
   MinecraftVPC:
@@ -799,19 +872,31 @@ Resources:
             Resource: "*"
           - Effect: "Allow"
             Action:
-              - "cloudformation:DescribeStacks"
-            Resource: !Ref "AWS::StackId"
+              - "ssm:GetParameter"
+            Resource: 
+              - !Join
+                - ""
+                - - "arn:aws:ssm:"
+                  - !Ref "AWS::Region"
+                  - ":"
+                  - !Ref "AWS::AccountId"
+                  - ":parameter"
+                  - !Ref MinecraftServerPropertiesParameter
+              - !Join
+                - ""
+                - - "arn:aws:ssm:"
+                  - !Ref "AWS::Region"
+                  - ":"
+                  - !Ref "AWS::AccountId"
+                  - ":parameter"
+                  - !Ref MinecraftServerSourceParameter
           - Effect: "Allow"
             Action:
-              - "ssm:GetParameter"
-            Resource: !Join
-              - ""
-              - - "arn:aws:ssm:"
-                - !Ref "AWS::Region"
-                - ":"
-                - !Ref "AWS::AccountId"
-                - ":parameter/"
-                - !Ref MinecraftServerProperties
+              - "secretsmanager:GetSecretValue"
+            Resource:
+              - !Ref MinecraftServerWhitelistSecret
+              - !Ref MinecraftServerPermissionsSecret
+              - !Ref MinecraftServerCustomScriptURLSecret
       Roles:
         - !Ref MinecraftServerRole
 
@@ -1061,11 +1146,6 @@ Resources:
           - ServerSideEncryptionByDefault:
               SSEAlgorithm: "AES256"
       BucketName: !Join [ "-", [ "minecraft", !Ref UUID ] ]
-      PublicAccessBlockConfiguration: 
-        BlockPublicAcls: true
-        BlockPublicPolicy: true
-        IgnorePublicAcls: true
-        RestrictPublicBuckets: true
       LifecycleConfiguration:
         Rules:
           - Id: BackupExpirationRule
@@ -1075,6 +1155,11 @@ Resources:
             NoncurrentVersionExpiration:
               NewerNoncurrentVersions: !Ref WorldBackupRetentionLimit
               NoncurrentDays: !Ref WorldBackupRetentionLimit
+      PublicAccessBlockConfiguration: 
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
       VersioningConfiguration:
         Status: Enabled
       Tags:

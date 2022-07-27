@@ -4,7 +4,7 @@ source /usr/games/minecraft-environment
 
 function backup_minecraft_worlds() {
     local backup_filename="/tmp/worlds.tar.bz2"
-    local bucket_name="minecraft-$(get_parameter UUID)"
+    local bucket_name="minecraft-${STACK_UUID}"
 
     rm -f "${backup_filename}"
     tar -c -j -f "${backup_filename}" -C "${BEDROCK_ROOT_DIR}" worlds

@@ -22,8 +22,9 @@ A private S3 bucket is created for hosting Minecraft world backups.
 
 When the server is configured to shut down automatically following a given schedule, this stack will create two ***lambda functions***, one of which will have the capability to stop the EC2 instance, and the other to start it. Stopping will be conducted periodically following the schedule and using EventBridge Rules. Starting will be conducted manually by knocking the HTTP API created as part of this stack.
 
-Bedrock server properties from the stack configuration are stored in Parameter Store in AWS Systems Manager. They are
-compiled to a format that is compatible with the server.properties file.
+Bedrock server properties from the stack configuration are stored in Parameter Store in AWS Systems Manager. They are compiled to a format that is compatible with the server.properties file. Bedrock server source URL is also stored in the Parameter Store.
+
+More sensitive parameters, i.e. permissions, whitelist and custom script URL are stored in AWS SecretsManager.
 
 ## Server and Software
 
@@ -42,4 +43,3 @@ Worlds are being automatically backed up to the dedicated S3 bucket whenever the
 - Automatic clean up of old Bedrock distributable versions
 - Tools to easily restore Worlds from a backup file
 - Stream logs from the server to CloudWatch
-- Store contents of the allowlist.json and permissions.json in Parameter Store or AWS Secrets
