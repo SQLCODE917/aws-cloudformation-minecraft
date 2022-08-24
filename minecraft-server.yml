@@ -558,7 +558,7 @@ Resources:
           - !Join [ "=", [ "correct-player-movement", !Ref CorrectPlayerMovement ] ]
           - !Join [ "=", [ "server-authoritative-block-breaking", !Ref ServerAuthoritativeBlockBreaking ] ]
 
-  # Minecraft server application configurateion, i.e. properties
+  # Minecraft server application configuration, i.e. properties
   MinecraftServerSourceParameter:
     Type: "AWS::SSM::Parameter"
     Properties:
@@ -640,6 +640,8 @@ Resources:
       EnableDnsSupport: true
       InstanceTenancy: "default"
       Tags:
+        - Key: "Name"
+          Value: !Join [ "-", [ "Minecraft", !Ref UUID ] ]
         - Key: "uuid"
           Value: !Ref UUID
         - Key: "project"
@@ -656,6 +658,8 @@ Resources:
     Type: "AWS::EC2::InternetGateway"
     Properties:
       Tags:
+        - Key: "Name"
+          Value: !Join [ "-", [ "Minecraft", !Ref UUID ] ]
         - Key: "uuid"
           Value: !Ref UUID
         - Key: "project"
@@ -684,6 +688,8 @@ Resources:
       CidrBlock: !Ref SubnetCidr
       MapPublicIpOnLaunch: true
       Tags:
+        - Key: "Name"
+          Value: !Join [ "-", [ "Minecraft", !Ref UUID ] ]
         - Key: "uuid"
           Value: !Ref UUID
         - Key: "project"
@@ -701,6 +707,8 @@ Resources:
     Type: "AWS::EC2::RouteTable"
     Properties: 
       Tags:
+        - Key: "Name"
+          Value: !Join [ "-", [ "Minecraft", !Ref UUID ] ]
         - Key: "uuid"
           Value: !Ref UUID
         - Key: "project"
@@ -733,7 +741,7 @@ Resources:
     Type: "AWS::EC2::SecurityGroup"
     Properties:
       GroupDescription: "Allows inbound traffic to Minecraft server UDP port."
-      GroupName: "minecraft-server"
+      GroupName: !Join [ "-", [ "minecraft", !Ref UUID ] ]
       SecurityGroupEgress: 
         - CidrIp: "0.0.0.0/0"
           Description: "Allow outbound HTTPS traffic."
@@ -757,6 +765,8 @@ Resources:
           FromPort: !Ref ServerPortIPv6
           ToPort: !Ref ServerPortIPv6
       Tags:
+        - Key: "Name"
+          Value: !Join [ "-", [ "Minecraft", !Ref UUID ] ]
         - Key: "uuid"
           Value: !Ref UUID
         - Key: "project"
@@ -1013,6 +1023,8 @@ Resources:
       SourceDestCheck: true
       SubnetId: !Ref MinecraftSubnet
       Tags:
+        - Key: "Name"
+          Value: !Join [ "-", [ "Minecraft", !Ref UUID ] ]
         - Key: "uuid"
           Value: !Ref UUID
         - Key: "project"
@@ -1037,6 +1049,8 @@ Resources:
     Properties:
       InstanceId: !Ref MinecraftServer
       Tags:
+        - Key: "Name"
+          Value: !Join [ "-", [ "Minecraft", !Ref UUID ] ]
         - Key: "uuid"
           Value: !Ref UUID
         - Key: "project"
