@@ -4,7 +4,7 @@ source /usr/games/minecraft-environment
 
 function restore_minecraft_worlds() {
     # Always proceed when forced.
-    if [ "${1}" == "-f" || "${1}" == "--force" ]; then
+    if [[ "${1}" == "-f" || "${1}" == "--force" ]]; then
         local proceed="true"
     else
         # Otherwise proceed with restoration only when the level
