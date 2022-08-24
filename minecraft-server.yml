@@ -463,35 +463,33 @@ Metadata:
 
 # -------------------------------------------------------------------------------------------------
 Mappings:
-  # AMI IDs for Canonical, Ubuntu, 20.04 LTS, amd64 focal image build on 2021-11-29
   RegionToAMIID:
     eu-central-1:
-      amd64: "ami-0d527b8c289b4af7f"
+      amd64: "ami-03f87e9ce1bec353f" # Canonical, Ubuntu, 22.04 LTS, amd64 jammy image build on 2022-08-10
     eu-north-1:
-      amd64: "ami-092cce4a19b438926"
+      amd64: "ami-0a2b8744b4fe77f92" # Canonical, Ubuntu, 22.04 LTS, amd64 jammy image build on 2022-08-10
     eu-west-1:
-      amd64: "ami-08ca3fed11864d6bb"
+      amd64: "ami-08a9dc8f6d1c4f806" # Canonical, Ubuntu, 22.04 LTS, amd64 jammy image build on 2022-08-10
     eu-west-2:
-      amd64: "ami-0015a39e4b7c0966f"
+      amd64: "ami-08bb1f8247aac1890" # Canonical, Ubuntu, 22.04 LTS, amd64 jammy image build on 2022-08-10
     eu-west-3:
-      amd64: "ami-0c6ebbd55ab05f070"
+      amd64: "ami-011eaee8f509eadb7" # Canonical, Ubuntu, 22.04 LTS, amd64 jammy image build on 2022-08-10
     us-east-1:
-      amd64: "ami-04505e74c0741db8d"
+      amd64: "ami-0a24ce26f4e187f9a" # Canonical, Ubuntu, 22.04 LTS, amd64 jammy image build on 2022-08-10
 
-  # Snapshot IDs for the region specific AMIs
   RegionToSnapshotID:
     eu-central-1:
-      amd64: "snap-0868b25604cf2e3d0"
+      amd64: "snap-0efafcfaf3ae88fe3"
     eu-north-1:
-      amd64: "snap-086e177dd2aa73806"
+      amd64: "snap-0ce60cd641b694f05"
     eu-west-1:
-      amd64: "snap-0bc145ed4603fb16c"
+      amd64: "snap-03bc492ef77b194bf"
     eu-west-2:
-      amd64: "snap-06c85fcd99762f325"
+      amd64: "snap-04bf7d47b7b1981af"
     eu-west-3:
-      amd64: "snap-0f687aca57ad516b2"
+      amd64: "snap-02ffb82693f2d720a"
     us-east-1:
-      amd64: "snap-0f7a6eae6d90437c4"
+      amd64: "snap-04df60761cc4ab04b"
 
 # -------------------------------------------------------------------------------------------------
 Conditions:
