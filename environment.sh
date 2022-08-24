@@ -54,4 +54,11 @@ function get_secret_value() {
         --output text
 }
 
+# Fetch a value from the server properties file.
+function get_server_property() {
+    cat "${BEDROCK_ROOT_DIR}/server.properties" | \
+        grep -P "^\s*${1}=" | \
+        awk '{ split($0, val, "="); print val[2] }'
+}
+
 minecraft_log "Environment initialization complete at $(date)"

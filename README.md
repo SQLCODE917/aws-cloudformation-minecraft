@@ -40,5 +40,4 @@ Worlds are being automatically backed up to the dedicated S3 bucket whenever the
 
 - IPv6 support
 - Automatic clean up of old Bedrock distributable versions
-- Tools to easily restore Worlds from a backup file
 - Stream logs from the server to CloudWatch
