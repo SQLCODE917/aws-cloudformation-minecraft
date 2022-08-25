@@ -2,6 +2,9 @@
 
 apt-get -y update && apt-get -y dist-upgrade
 apt-get -y install awscli curl jq openssl screen unzip wget
+snap install core20
+snap install core22
+
 mkdir -p /usr/games/minecraft /usr/games/minecraft-repository
 
 OLD_PWD="$(pwd)"
