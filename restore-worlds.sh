@@ -25,7 +25,7 @@ function restore_minecraft_worlds() {
         
         rm -f "/tmp/${backup_filename}"
         aws s3 cp "s3://${bucket_name}/backups/${backup_filename}" "/tmp/${backup_filename}"
-        tar -x -j -f "/tmp/${backup_filename}"
+        tar -x -j -f "/tmp/${backup_filename}" -C "/tmp/"
         rm -f "/tmp/${backup_filename}"
         
         rm -Rf "${BEDROCK_ROOT_DIR}/worlds/${level_name}" && \

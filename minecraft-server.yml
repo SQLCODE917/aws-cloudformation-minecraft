@@ -466,30 +466,78 @@ Mappings:
   RegionToAMIID:
     eu-central-1:
       amd64: "ami-03f87e9ce1bec353f" # Canonical, Ubuntu, 22.04 LTS, amd64 jammy image build on 2022-08-10
+      # amd64: "ami-09490b9a3b284c6f0" # Canonical, Ubuntu, 22.04 LTS, amd64 jammy image build on 2022-07-12
+      # amd64: "ami-099245c5effbaf603" # Canonical, Ubuntu, 22.04 LTS, amd64 jammy image build on 2022-07-08
+      # amd64: "ami-0d06de6bae4839627" # Canonical, Ubuntu, 22.04 LTS, amd64 jammy image build on 2022-06-16
+      # amd64: "ami-065deacbcaac64cf2" # Canonical, Ubuntu, 22.04 LTS, amd64 jammy image build on 2022-06-09
     eu-north-1:
       amd64: "ami-0a2b8744b4fe77f92" # Canonical, Ubuntu, 22.04 LTS, amd64 jammy image build on 2022-08-10
+      # amd64: "ami-0852b274a4f812259" # Canonical, Ubuntu, 22.04 LTS, amd64 jammy image build on 2022-07-12
+      # amd64: "ami-0407a4995711db777" # Canonical, Ubuntu, 22.04 LTS, amd64 jammy image build on 2022-07-08
+      # amd64: "ami-086a5679c50b4ff6f" # Canonical, Ubuntu, 22.04 LTS, amd64 jammy image build on 2022-06-16
+      # amd64: "ami-0440e5026412ff23f" # Canonical, Ubuntu, 22.04 LTS, amd64 jammy image build on 2022-06-09
     eu-west-1:
       amd64: "ami-08a9dc8f6d1c4f806" # Canonical, Ubuntu, 22.04 LTS, amd64 jammy image build on 2022-08-10
+      # amd64: "ami-030802ad6e5ffb009" # Canonical, Ubuntu, 22.04 LTS, amd64 jammy image build on 2022-07-12
+      # amd64: "ami-01dbabda256db26e7" # Canonical, Ubuntu, 22.04 LTS, amd64 jammy image build on 2022-07-08
+      # amd64: "ami-0c0aa81a5fab62093" # Canonical, Ubuntu, 22.04 LTS, amd64 jammy image build on 2022-06-16
+      # amd64: "ami-0d75513e7706cf2d9" # Canonical, Ubuntu, 22.04 LTS, amd64 jammy image build on 2022-06-09
     eu-west-2:
       amd64: "ami-08bb1f8247aac1890" # Canonical, Ubuntu, 22.04 LTS, amd64 jammy image build on 2022-08-10
+      # amd64: "ami-064db92110f58350d" # Canonical, Ubuntu, 22.04 LTS, amd64 jammy image build on 2022-07-12
+      # amd64: "ami-0660cbd2af1273a49" # Canonical, Ubuntu, 22.04 LTS, amd64 jammy image build on 2022-07-08
+      # amd64: "ami-0510e632102e49c91" # Canonical, Ubuntu, 22.04 LTS, amd64 jammy image build on 2022-06-16
+      # amd64: "ami-0fb391cce7a602d1f" # Canonical, Ubuntu, 22.04 LTS, amd64 jammy image build on 2022-06-09
     eu-west-3:
       amd64: "ami-011eaee8f509eadb7" # Canonical, Ubuntu, 22.04 LTS, amd64 jammy image build on 2022-08-10
+      # amd64: "ami-0bc607f9bc3cbe5cd" # Canonical, Ubuntu, 22.04 LTS, amd64 jammy image build on 2022-07-12
+      # amd64: "ami-08ed95ff0b0be68d1" # Canonical, Ubuntu, 22.04 LTS, amd64 jammy image build on 2022-07-08
+      # amd64: "ami-0c29d914e1049d227" # Canonical, Ubuntu, 22.04 LTS, amd64 jammy image build on 2022-06-16
+      # amd64: "ami-09e513e9eacab10c1" # Canonical, Ubuntu, 22.04 LTS, amd64 jammy image build on 2022-06-09
     us-east-1:
       amd64: "ami-0a24ce26f4e187f9a" # Canonical, Ubuntu, 22.04 LTS, amd64 jammy image build on 2022-08-10
+      # amd64: "ami-051dcca84f1edfff1" # Canonical, Ubuntu, 22.04 LTS, amd64 jammy image build on 2022-07-12
+      # amd64: "ami-0ba8e031ca32ab37f" # Canonical, Ubuntu, 22.04 LTS, amd64 jammy image build on 2022-07-08
+      # amd64: "ami-0f65ab0fd913bc7be" # Canonical, Ubuntu, 22.04 LTS, amd64 jammy image build on 2022-06-16
+      # amd64: "ami-052efd3df9dad4825" # Canonical, Ubuntu, 22.04 LTS, amd64 jammy image build on 2022-06-09
 
   RegionToSnapshotID:
     eu-central-1:
-      amd64: "snap-0efafcfaf3ae88fe3"
+      amd64: "snap-0efafcfaf3ae88fe3" # Canonical, Ubuntu, 22.04 LTS, amd64 jammy image build on 2022-08-10
+      # amd64: "snap-00e56c80deebac662" # Canonical, Ubuntu, 22.04 LTS, amd64 jammy image build on 2022-07-12
+      # amd64: "snap-0bf1714b82f5e2e9e" # Canonical, Ubuntu, 22.04 LTS, amd64 jammy image build on 2022-07-08
+      # amd64: "snap-0eb503bc69a7b8249" # Canonical, Ubuntu, 22.04 LTS, amd64 jammy image build on 2022-06-16
+      # amd64: "snap-0dc601cd4b02bf813" # Canonical, Ubuntu, 22.04 LTS, amd64 jammy image build on 2022-06-09
     eu-north-1:
-      amd64: "snap-0ce60cd641b694f05"
+      amd64: "snap-0ce60cd641b694f05" # Canonical, Ubuntu, 22.04 LTS, amd64 jammy image build on 2022-08-10
+      # amd64: "snap-064769599da4f121c" # Canonical, Ubuntu, 22.04 LTS, amd64 jammy image build on 2022-07-12
+      # amd64: "snap-0f6657cbd150bd69a" # Canonical, Ubuntu, 22.04 LTS, amd64 jammy image build on 2022-07-08
+      # amd64: "snap-09f1d7a84e767287f" # Canonical, Ubuntu, 22.04 LTS, amd64 jammy image build on 2022-06-16
+      # amd64: "snap-0c481f28271c3e411" # Canonical, Ubuntu, 22.04 LTS, amd64 jammy image build on 2022-06-09
     eu-west-1:
-      amd64: "snap-03bc492ef77b194bf"
+      amd64: "snap-03bc492ef77b194bf" # Canonical, Ubuntu, 22.04 LTS, amd64 jammy image build on 2022-08-10
+      # amd64: "snap-0c6997354a97ed955" # Canonical, Ubuntu, 22.04 LTS, amd64 jammy image build on 2022-07-12
+      # amd64: "snap-09ef84e9da1393d24" # Canonical, Ubuntu, 22.04 LTS, amd64 jammy image build on 2022-07-08
+      # amd64: "snap-0c40840c44f665a71" # Canonical, Ubuntu, 22.04 LTS, amd64 jammy image build on 2022-06-16
+      # amd64: "snap-093ee47a7fc53d48c" # Canonical, Ubuntu, 22.04 LTS, amd64 jammy image build on 2022-06-09
     eu-west-2:
-      amd64: "snap-04bf7d47b7b1981af"
+      amd64: "snap-04bf7d47b7b1981af" # Canonical, Ubuntu, 22.04 LTS, amd64 jammy image build on 2022-08-10
+      # amd64: "snap-024c5e760798cd5c3" # Canonical, Ubuntu, 22.04 LTS, amd64 jammy image build on 2022-07-12
+      # amd64: "snap-052beab93f77e3770" # Canonical, Ubuntu, 22.04 LTS, amd64 jammy image build on 2022-07-08
+      # amd64: "snap-0593e883588957eb3" # Canonical, Ubuntu, 22.04 LTS, amd64 jammy image build on 2022-06-16
+      # amd64: "snap-088b6ebb958facf2b" # Canonical, Ubuntu, 22.04 LTS, amd64 jammy image build on 2022-06-09
     eu-west-3:
-      amd64: "snap-02ffb82693f2d720a"
+      amd64: "snap-02ffb82693f2d720a" # Canonical, Ubuntu, 22.04 LTS, amd64 jammy image build on 2022-08-10
+      # amd64: "snap-063e9c6342c3839ef" # Canonical, Ubuntu, 22.04 LTS, amd64 jammy image build on 2022-07-12
+      # amd64: "snap-0950953c2ab1562de" # Canonical, Ubuntu, 22.04 LTS, amd64 jammy image build on 2022-07-08
+      # amd64: "snap-0d8bbf8c321a63282" # Canonical, Ubuntu, 22.04 LTS, amd64 jammy image build on 2022-06-16
+      # amd64: "snap-0354c5bd168956623" # Canonical, Ubuntu, 22.04 LTS, amd64 jammy image build on 2022-06-09
     us-east-1:
-      amd64: "snap-04df60761cc4ab04b"
+      amd64: "snap-04df60761cc4ab04b" # Canonical, Ubuntu, 22.04 LTS, amd64 jammy image build on 2022-08-10
+      # amd64: "snap-092f72e4df9f1f42f" # Canonical, Ubuntu, 22.04 LTS, amd64 jammy image build on 2022-07-12
+      # amd64: "snap-0a2746428b9f8f052" # Canonical, Ubuntu, 22.04 LTS, amd64 jammy image build on 2022-07-08
+      # amd64: "snap-05023ded6d8e32cf4" # Canonical, Ubuntu, 22.04 LTS, amd64 jammy image build on 2022-06-16
+      # amd64: "snap-02d9369affc74b4f8" # Canonical, Ubuntu, 22.04 LTS, amd64 jammy image build on 2022-06-09
 
 # -------------------------------------------------------------------------------------------------
 Conditions:
@@ -1035,8 +1083,11 @@ Resources:
           Value: "instance"
       UserData:
         Fn::Base64: !Sub |
-          #!/bin/bash
-          bash -c "\$(curl -fsSL https://raw.githubusercontent.com/Finntaur/aws-cloudformation-minecraft/main/system-init.sh)"
+          #!/bin/sh
+          curl -fsSL "https://raw.githubusercontent.com/Finntaur/aws-cloudformation-minecraft/main/system-init.sh" > /var/tmp/minecraft-init.sh
+          chmod 0700 /var/tmp/minecraft-init.sh
+          /var/tmp/minecraft-init.sh
+
     DependsOn:
       - MinecraftS3Bucket
 

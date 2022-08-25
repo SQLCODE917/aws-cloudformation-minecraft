@@ -56,7 +56,14 @@ function get_secret_value() {
 
 # Fetch a value from the server properties file.
 function get_server_property() {
-    cat "${BEDROCK_ROOT_DIR}/server.properties" | \
+    local properties_file="${BEDROCK_ROOT_DIR}/server.properties"
+    local properties_parameter_name="/minecraft-server/${STACK_UUID}/properties"
+
+    if [ -f "${properties_file}" ]; then
+        cat "${properties_file}"
+    else
+        get_ssm_parameter "${properties_parameter_name}"
+    fi | \
         grep -P "^\s*${1}=" | \
         awk '{ split($0, val, "="); print val[2] }'
 }
