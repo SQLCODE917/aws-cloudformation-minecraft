@@ -16,6 +16,5 @@ git status &> /dev/null || git clone https://github.com/Finntaur/aws-cloudformat
 
 cd "${OLD_PWD}"
 
-systemctl restart minecraft
 systemctl enable minecraft
 systemctl enable pre-shutdown

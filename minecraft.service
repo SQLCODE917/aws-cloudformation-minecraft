@@ -6,6 +6,7 @@ After=cloud-final.service
 ExecStart=/usr/games/minecraft-start
 Type=oneshot
 RemainAfterExit=yes
+TimeoutStartSec=90
 
 [Install]
 WantedBy=cloud-init.target

@@ -1,0 +1,1 @@
+*/2 * * * *   root    /etc/cron.custom/minecraft-keepalive

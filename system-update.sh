@@ -27,6 +27,9 @@ elif [[  ${#} -eq 1 && "${1}" == "second-pass" ]]; then
     install -C -o root -g root -m 0644 -D minecraft.service /etc/systemd/system/minecraft.service
     install -C -o root -g root -m 0644 -D pre-shutdown.service /etc/systemd/system/pre-shutdown.service
 
+    install -C -o root -g root -m 0755 -D keepalive-cron.sh /etc/cron.custom/minecraft-keepalive
+    install -C -o root -g root -m 0644 -D crontab /etc/cron.d/minecraft
+
     grep -qP '^\s*LD_LIBRARY_PATH=.' /etc/environment || \
         echo "LD_LIBRARY_PATH=.:/snap/core22/current/lib/x86_64-linux-gnu/:/snap/core20/current/lib/x86_64-linux-gnu/" >> /etc/environment
 
