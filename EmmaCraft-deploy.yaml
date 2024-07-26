@@ -1,3 +1,22 @@
 template-file-path: minecraft-server.yml
-parameters: {}
+parameters: {
+  UUID: "bf6cf050-cb4f-46e3-8d44-25aef2c51265",
+  AvailabilityZone: "us-east-1",
+  ServerInstanceType: "t2.medium",
+  ServerAuthenticationKey: "Emmacraft-ED25519-2024-07-08",
+  ServerSourceURL: "https://minecraft.azureedge.net/bin-linux/bedrock-server-1.21.3.01.zip",
+  WhitelistJSON: [{
+    uuid: "c2c05718-5297-420d-aead-e98de9ac17e3",
+    name: "YotsubaKoiwai"
+  }],
+  PermissionsJSON: [{
+    name: "YotsubaKoiwai",
+    permission: "operator",
+    xuid: "2533274860967371"
+  }],
+  ServerName: "EmmaCraft",
+  GameMode: "creative",
+  ForceGameMode: "false",
+  Difficulty: "peaceful",
+}
 tags: {}
